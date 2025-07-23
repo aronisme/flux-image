@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FLUX.1 Image Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      margin: 0 2px;
+      background-color: #9CA3AF;
+      border-radius: 50%;
+      display: inline-block;
+      animation: typingAnimation 1.4s infinite ease-in-out;
+    }
+    @keyframes typingAnimation {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+    .message-image {
+      transition: transform 0.2s;
+      cursor: zoom-in;
+    }
+    .message-image:hover {
+      transform: scale(1.02);
+    }
+    .image-modal {
+      background-color: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-modal img {
+      max-height: 90vh;
+      max-width: 90vw;
+      object-fit: contain;
+    }
+    .sidebar {
+      transition: transform 0.3s ease;
+      transform: translateX(0);
+      min-width: 200px;
+    }
+    .sidebar-hidden {
+      transform: translateX(-100%);
+    }
+    .suggestion-chip {
+      transition: background-color 0.2s;
+    }
+    .suggestion-chip:hover {
+      background-color: #4B5563;
+    }
+    .chat-actions {
+      display: none;
+    }
+    .chat-message:hover .chat-actions {
+      display: flex;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 50;
+        width: 75%;
+        max-width: 280px;
+      }
+      .main-content {
+        transition: margin-left 0.3s ease;
+      }
+      .sidebar-hidden + .main-content {
+        margin-left: 0;
+      }
+      .chat-actions {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white flex h-screen">
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar bg-gray-800 p-3 flex flex-col shadow-lg md:w-64">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-semibold">Pengaturan</h2>
+      <button id="toggle-sidebar" class="text-gray-400 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="space-y-3 flex-1">
+      <div>
+        <label class="block text-xs font-medium text-gray-300 mb-1">Rasio Aspek</label>
+        <select id="aspect" class="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+          <option value="1024,1024">1:1 Persegi</option>
+          <option value="1024,768">4:3 Standar</option>
+          <option value="1024,682">3:2 Klasik</option>
+          <option value="1024,576">16:9 Lebar</option>
+          <option value="682,1024">2:3 Potret</option>
+          <option value="576,1024">9:16 Vertikal</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-300 mb-1">Langkah (1-4)</label>
+        <input type="number" id="steps" value="3" min="1" max="4" 
+               class="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-300 mb-1">Jumlah (1-4)</label>
+        <input type="number" id="n" value="1" min="1" max="4" 
+               class="w-full px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col main-content">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-2 flex items-center justify-between shadow-md">
+      <button id="toggle-sidebar-mobile" class="md:hidden text-white">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="flex items-center">
+        <i class="fas fa-robot text-xl mr-2"></i>
+        <h1 class="text-lg font-bold">FLUX.1 Generator Gambar AI</h1>
+      </div>
+      <button id="fullscreen-btn" class="p-1 rounded-full hover:bg-blue-500 transition">
+        <i class="fas fa-expand"></i>
+      </button>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div id="chat-container" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-900">
+      <div class="flex justify-center">
+        <div class="bg-gray-800 p-3 rounded-lg shadow-sm max-w-[85%] md:max-w-[75%] border border-gray-700">
+          <p>Selamat datang! Jelaskan gambar yang ingin dibuat, saya akan menghasilkannya untuk Anda.</p>
+          <div id="suggestions" class="mt-2 flex flex-wrap gap-2 justify-center">
+            <button class="suggestion-chip bg-gray-700 text-gray-300 px-2 py-1 rounded-full text-xs hover:bg-gray-600"
+                    onclick="fillPrompt('Pantai indah saat matahari terbenam, hiper-realistis')">Pantai Matahari Terbenam</button>
+            <button class="suggestion-chip bg-gray-700 text-gray-300 px-2 py-1 rounded-full text-xs hover:bg-gray-600"
+                    onclick="fillPrompt('Kota futuristik, gaya cyberpunk')">Kota Cyberpunk</button>
+            <button class="suggestion-chip bg-gray-700 text-gray-300 px-2 py-1 rounded-full text-xs hover:bg-gray-600"
+                    onclick="fillPrompt('Pemandangan gunung megah, warna cerah')">Pemandangan Gunung</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="p-3 border-t border-gray-700 bg-gray-800 shadow-lg">
+      <div class="flex items-end gap-2">
+        <textarea id="prompt" rows="2" 
+                  class="flex-1 px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white resize-none" 
+                  placeholder="Jelaskan gambar yang diinginkan (misal: 'buah mangga, ultra realistis, pencahayaan dramatis')..."
+                  onkeydown="handleKeyDown(event)"></textarea>
+        <button onclick="generate()" 
+                class="bg-blue-600 hover:bg-blue-700 text-white h-9 w-9 flex items-center justify-center rounded-lg transition">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div id="image-modal" class="fixed inset-0 z-50 image-modal hidden">
+    <button onclick="closeModal()" class="absolute top-4 right-4 text-white text-xl">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="flex items-center justify-center h-full">
+      <img id="modal-image" class="rounded-lg shadow-xl">
+    </div>
+  </div>
+
+  <script>
+    // Determine API base URL (local or production)
+    const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebar = document.getElementById('toggle-sidebar');
+    const toggleSidebarMobile = document.getElementById('toggle-sidebar-mobile');
+    
+    toggleSidebar.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-hidden');
+    });
+    
+    toggleSidebarMobile.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar-hidden');
+    });
+
+    // Fullscreen functionality
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Gagal masuk fullscreen: ${err.message}`);
+        });
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+      } else {
+        document.exitFullscreen();
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+      }
+    }
+
+    // Enter key submission
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        generate();
+      }
+    }
+
+    // Fill prompt from suggestion or edit
+    function fillPrompt(text) {
+      const prompt = document.getElementById('prompt');
+      prompt.value = text;
+      prompt.focus();
+    }
+
+    // Copy text to clipboard
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Teks disalin ke clipboard!');
+      }).catch(err => {
+        console.error('Gagal menyalin teks:', err);
+      });
+    }
+
+    // Image modal functionality
+    function showImage(url) {
+      const modal = document.getElementById('image-modal');
+      const img = document.getElementById('modal-image');
+      img.src = url;
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('image-modal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    // Chat functionality
+    async function generate() {
+      const p = document.getElementById('prompt').value.trim();
+      if (!p) return;
+      
+      const [w,h] = document.getElementById('aspect').value.split(',').map(Number);
+      const s = document.getElementById('steps').value;
+      const n = document.getElementById('n').value;
+      const chatContainer = document.getElementById('chat-container');
+      
+      // Add user message
+      addMessage(p, 'user');
+      document.getElementById('prompt').value = '';
+      
+      // Add loading message
+      const loadingId = addLoadingMessage();
+      
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: p, width: w, height: h, steps: s, n: n })
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP error ${res.status}: ${await res.text()}`);
+        }
+        const data = await res.json();
+
+        // Remove loading message
+        removeMessage(loadingId);
+        
+        if (data.data?.length) {
+          // Add success message with images
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'flex justify-center';
+          
+          const contentDiv = document.createElement('div');
+          contentDiv.className = 'bg-gray-800 p-3 rounded-lg shadow-sm max-w-[85%] md:max-w-[75%] border border-gray-700 space-y-3';
+          
+          data.data.forEach(i => {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'rounded-lg overflow-hidden message-image';
+            imgContainer.onclick = () => showImage(i.url);
+            
+            const img = document.createElement('img');
+            img.src = i.url; 
+            img.className = 'w-full h-auto object-contain rounded';
+            img.alt = 'Gambar dihasilkan';
+            img.loading = 'lazy';
+            
+            imgContainer.appendChild(img);
+            contentDiv.appendChild(imgContainer);
+          });
+          
+          const metaInfo = document.createElement('p');
+          metaInfo.className = 'text-xs text-gray-400 mt-1 text-center';
+          metaInfo.textContent = `Menghasilkan ${data.data.length} gambar (${w}×${h}, langkah ${s})`;
+          contentDiv.appendChild(metaInfo);
+          
+          messageDiv.appendChild(contentDiv);
+          chatContainer.appendChild(messageDiv);
+        } else {
+          // Add error message
+          addMessage(`Gagal menghasilkan gambar: ${data.error?.message || 'Kesalahan tidak diketahui'}`, 'error');
+        }
+      } catch (e) {
+        // Remove loading message
+        removeMessage(loadingId);
+        // Add error message
+        addMessage(`Koneksi gagal: ${e.message}. Coba lagi.`, 'error');
+      }
+      
+      // Scroll to bottom
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      document.getElementById('prompt').focus();
+    }
+    
+    function addMessage(text, type = 'bot') {
+      const chatContainer = document.getElementById('chat-container');
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = type === 'user' ? 'flex justify-end' : 'flex justify-center';
+      
+      const contentDiv = document.createElement('div');
+      let classes = 'p-3 rounded-lg shadow-sm max-w-[85%] md:max-w-[75%] chat-message ';
+      
+      if (type === 'user') {
+        classes += 'bg-blue-600 text-white';
+      } else if (type === 'error') {
+        classes += 'bg-red-800 border border-red-600 text-red-200';
+      } else {
+        classes += 'bg-gray-800 border border-gray-700';
+      }
+      
+      contentDiv.className = classes;
+      contentDiv.textContent = text;
+
+      if (type === 'user') {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'chat-actions flex gap-2 mt-2';
+        actionsDiv.innerHTML = `
+          <button onclick="copyText('${text.replace(/'/g, "\\'")}')" class="text-xs text-gray-300 hover:text-white">
+            <i class="fas fa-copy mr-1"></i>Salin
+          </button>
+          <button onclick="fillPrompt('${text.replace(/'/g, "\\'")}')" class="text-xs text-gray-300 hover:text-white">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
+        `;
+        contentDiv.appendChild(actionsDiv);
+      }
+      
+      messageDiv.appendChild(contentDiv);
+      chatContainer.appendChild(messageDiv);
+      
+      return messageDiv;
+    }
+    
+    function addLoadingMessage() {
+      const chatContainer = document.getElementById('chat-container');
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'flex justify-center';
+      messageDiv.id = 'loading-' + Date.now();
+      
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'bg-gray-800 p-3 rounded-lg shadow-sm max-w-[85%] md:max-w-[75%] border border-gray-700';
+      
+      const typingDiv = document.createElement('div');
+      typingDiv.className = 'flex items-center justify-center';
+      typingDiv.innerHTML = `
+        <div class="flex mr-2">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+        <span class="text-sm">Menghasilkan gambar...</span>
+      `;
+      
+      contentDiv.appendChild(typingDiv);
+      messageDiv.appendChild(contentDiv);
+      chatContainer.appendChild(messageDiv);
+      
+      return messageDiv.id;
+    }
+    
+    function removeMessage(id) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.remove();
+      }
+    }
+
+    // Test API health on page load
+    async function checkApiHealth() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/health`);
+        if (res.ok) {
+          console.log('Cek kesehatan API: OK');
+        } else {
+          console.error('Cek kesehatan API gagal:', await res.text());
+        }
+      } catch (e) {
+        console.error('Kesalahan cek kesehatan API:', e.message);
+      }
+    }
+    checkApiHealth();
+  </script>
+</body>
+</html>
