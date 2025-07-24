@@ -15,41 +15,21 @@ const API_KEYS = [
 
 let keyIndex = 0;
 const TIMEOUT = 9500;
-const jobs = new Map();
 
+// Helper untuk pembulatan ke kelipatan 16
 function roundTo16(x) {
   return Math.max(16, Math.round(x / 16) * 16);
 }
 
-function generateJobId() {
-  return Date.now().toString() + Math.floor(Math.random() * 10000);
-}
-
-// === Routes ===
+// === ROUTES ===
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/api/queue", async (req, res) => {
-  const jobId = generateJobId();
-  jobs.set(jobId, { status: "pending" });
+app.post("/api/generate-image", async (req, res) => {
+  const { prompt, width = 1024, height = 1024, steps = 3, n = 1 } = req.body;
 
-  processJob(jobId, req.body);
-
-  res.json({ job_id: jobId });
-});
-
-app.get("/api/result/:id", (req, res) => {
-  const job = jobs.get(req.params.id);
-  if (!job) return res.status(404).json({ error: "Job tidak ditemukan" });
-  res.json(job);
-});
-
-// === Background job ===
-
-async function processJob(jobId, body) {
-  const { prompt, width = 1024, height = 1024, steps = 3, n = 1 } = body;
   const w = roundTo16(parseInt(width));
   const h = roundTo16(parseInt(height));
   const s = Math.min(Math.max(parseInt(steps), 1), 4);
@@ -59,7 +39,7 @@ async function processJob(jobId, body) {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT);
 
   try {
-    const res = await fetch("https://api.together.ai/v1/images/generations", {
+    const response = await fetch("https://api.together.ai/v1/images/generations", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${API_KEYS[keyIndex]}`,
@@ -78,32 +58,33 @@ async function processJob(jobId, body) {
     });
 
     clearTimeout(timeout);
-    const data = await res.json();
+    const data = await response.json();
 
-    if (res.status === 429 || data.error?.type === "model_rate_limit") {
+    // Jika rate limit, coba key berikutnya
+    if (response.status === 429 || data.error?.type === "model_rate_limit") {
       keyIndex = (keyIndex + 1) % API_KEYS.length;
-      return processJob(jobId, body);
+      return await app.handle(req, res); // retry
     }
 
     if (!data.data?.[0]?.url) {
-      jobs.set(jobId, { status: "error", result: "Gagal mendapatkan gambar" });
-    } else {
-      jobs.set(jobId, { status: "done", result: data });
+      return res.status(500).json({ error: { message: "Gagal mendapatkan gambar dari TogetherAI" } });
     }
+
+    res.json({ data: data.data });
   } catch (err) {
     clearTimeout(timeout);
     const msg = err.name === "AbortError" ? "Timeout saat request ke TogetherAI" : err.message;
-    jobs.set(jobId, { status: "error", result: msg });
+    res.status(500).json({ error: { message: msg } });
   }
-}
+});
 
-// === Export for serverless ===
+// === EXPORT UNTUK SERVERLESS ===
 export const handler = serverless(app);
 
-// === Local server ===
-if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
+// === LOCAL MODE === (khusus ESM)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
-    console.log(`🚀 Server jalan di http://localhost:${PORT}`);
+    console.log(`🚀 Server lokal berjalan di http://localhost:${PORT}`);
   });
 }

@@ -1,10 +1,11 @@
 {
-  "name": "flux1-image-generator",
+  "name": "image-generator-server",
   "version": "1.0.0",
+  "description": "Async image generation server with TogetherAI + Express + Serverless support",
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "dev": "cross-env LOCAL=true nodemon app.js",
+    "dev": "nodemon app.js",
     "start": "node app.js"
   },
   "dependencies": {
@@ -14,7 +15,12 @@
     "serverless-http": "^3.0.2"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "nodemon": "^3.0.3"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [],
+  "author": "Aron Muhammad",
+  "license": "MIT"
 }
