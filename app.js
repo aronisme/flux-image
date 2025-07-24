@@ -5,26 +5,26 @@ import serverless from "serverless-http";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// Setup __dirname untuk ESM
+// Setup __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Inisialisasi express
+// Initialize express
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Konfigurasi
-const API_KEYS = [
+// Configuration
+const API_KEYS = process.env.API_KEYS ? process.env.API_KEYS.split(",") : [
   "bd387d9ec32783f00020a0b3dc2da01ee150580bb62cde657f600d9a9ac1deaa",
   "3f24e38734da5e1be049345f611dc956ce6351bcfda6b36210e342fa356ffbd0",
   "ccca937c293806f2d535b38b4d2a347cfac9ef5d7f8649695a95ff4c9d89f1df"
 ];
-const TIMEOUT = 15000;
+const TIMEOUT = 50000;
 let keyIndex = 0;
 
-// Fungsi bantu
+// Helper functions
 const roundTo16 = (x) => Math.max(16, Math.round(parseInt(x) / 16) * 16);
 const validateParams = ({ prompt, width = 1024, height = 1024, steps = 3, n = 1 }) => ({
   prompt: prompt?.trim(),
@@ -34,7 +34,7 @@ const validateParams = ({ prompt, width = 1024, height = 1024, steps = 3, n = 1 
   n: Math.min(Math.max(parseInt(n), 1), 4)
 });
 
-// Middleware error async
+// Async error middleware
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch((err) =>
     res.status(500).json({ error: { message: err.message } })
@@ -47,7 +47,7 @@ app.post(
   "/api/generate-image",
   asyncHandler(async (req, res) => {
     const { prompt, width, height, steps, n } = validateParams(req.body);
-    if (!prompt) return res.status(400).json({ error: { message: "Prompt diperlukan" } });
+    if (!prompt) return res.status(400).json({ error: { message: "Prompt required" } });
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT);
@@ -80,13 +80,13 @@ app.post(
       }
 
       if (!data.data?.[0]?.url) {
-        return res.status(500).json({ error: { message: "Gagal menghasilkan gambar" } });
+        return res.status(500).json({ error: { message: "Failed to generate image" } });
       }
 
       res.json({ data: data.data });
     } catch (err) {
       clearTimeout(timeout);
-      throw err.name === "AbortError" ? new Error("Timeout saat request ke TogetherAI") : err;
+      throw err.name === "AbortError" ? new Error("Timeout on TogetherAI request") : err;
     }
   })
 );
@@ -107,12 +107,12 @@ app.get(
 
       if (!response.ok) {
         return res.status(response.status).json({
-          error: { message: `TogetherAI tidak respons: ${response.statusText}` }
+          error: { message: `TogetherAI not responding: ${response.statusText}` }
         });
       }
 
       const data = await response.json();
-      res.json({ message: "Koneksi ke TogetherAI berhasil", data });
+      res.json({ message: "Connected to TogetherAI", data });
     } catch (err) {
       clearTimeout(timeout);
       throw err.name === "AbortError" ? new Error("Timeout") : err;
@@ -120,16 +120,16 @@ app.get(
   })
 );
 
-// Fallback untuk SPA
+// SPA fallback
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Export untuk serverless (jika perlu)
+// Export for serverless
 export const handler = serverless(app);
 
-// 🟢 JALANKAN LANGSUNG: Railway, lokal, dll
+// Run server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

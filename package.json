@@ -4,8 +4,12 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
+    "install": "npm install --omit=dev",
     "dev": "cross-env LOCAL=true nodemon app.js",
     "start": "node app.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "cors": "^2.8.5",
