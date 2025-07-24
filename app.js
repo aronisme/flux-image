@@ -21,7 +21,7 @@ const API_KEYS = [
   "3f24e38734da5e1be049345f611dc956ce6351bcfda6b36210e342fa356ffbd0",
   "ccca937c293806f2d535b38b4d2a347cfac9ef5d7f8649695a95ff4c9d89f1df"
 ];
-const TIMEOUT = 50000; // Diperpanjang dari 9500ms ke 15000ms
+const TIMEOUT = 15000;
 let keyIndex = 0;
 
 // Fungsi bantu
@@ -34,22 +34,20 @@ const validateParams = ({ prompt, width = 1024, height = 1024, steps = 3, n = 1 
   n: Math.min(Math.max(parseInt(n), 1), 4)
 });
 
-// Middleware untuk tangani error
+// Middleware error async
 const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch((err) =>
     res.status(500).json({ error: { message: err.message } })
   );
 
-// API Routes
+// === API Routes ===
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 app.post(
   "/api/generate-image",
   asyncHandler(async (req, res) => {
     const { prompt, width, height, steps, n } = validateParams(req.body);
-    if (!prompt) {
-      return res.status(400).json({ error: { message: "Prompt diperlukan" } });
-    }
+    if (!prompt) return res.status(400).json({ error: { message: "Prompt diperlukan" } });
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT);
@@ -97,7 +95,7 @@ app.get(
   "/api/check-togetherai",
   asyncHandler(async (req, res) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // Diperpanjang dari 5000ms ke 8000ms
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
       const response = await fetch("https://api.together.ai/status", {
@@ -108,7 +106,9 @@ app.get(
       clearTimeout(timeout);
 
       if (!response.ok) {
-        return res.status(response.status).json({ error: { message: `TogetherAI tidak respons: ${response.statusText}` } });
+        return res.status(response.status).json({
+          error: { message: `TogetherAI tidak respons: ${response.statusText}` }
+        });
       }
 
       const data = await response.json();
@@ -121,13 +121,15 @@ app.get(
 );
 
 // Fallback untuk SPA
-app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-// Export untuk serverless
+// Export untuk serverless (jika perlu)
 export const handler = serverless(app);
 
-// Mode lokal
-if (process.env.LOCAL === "true") {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => console.log(`🚀 Server lokal berjalan di http://localhost:${PORT}`));
-}
+// 🟢 JALANKAN LANGSUNG: Railway, lokal, dll
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+});
