@@ -1,107 +1,561 @@
-<!DOCTYPE html>
+
+                        <!DOCTYPE html>
+                        <html lang="en">
+                        <head>
+                            <meta charset="UTF-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  background-color: white; /* Ensure the iframe has a white background */
+                }
+    
+                
+              </style>
+                        </head>
+                        <body>
+                            <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FLUX.1 Generator Gambar AI</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .animate-pulse-custom {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .animate-gradient {
+      background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+      background-size: 400% 400%;
+      animation: gradient 4s ease infinite;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 font-sans">
-  <div class="container mx-auto p-4">
-    <!-- Settings Section -->
-    <div class="mb-4">
-      <h2 class="text-xl font-bold mb-2">Pengaturan</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium">Rasio Aspek</label>
-          <select id="aspectRatio" class="mt-1 block w-full p-2 border rounded">
-            <option value="1:1">1:1 Persegi</option>
-            <option value="4:3">4:3 Standar</option>
-            <option value="3:2">3:2 Klasik</option>
-            <option value="16:9">16:9 Lebar</option>
-            <option value="2:3">2:3 Potret</option>
-            <option value="9:16">9:16 Vertikal</option>
-          </select>
+  <div class="flex h-screen">
+    <!-- Mobile Header -->
+    <div class="bg-white border-b border-gray-200 p-4 flex items-center md:hidden fixed top-0 left-0 right-0 z-10">
+      <button id="sidebarToggle" class="text-gray-500 mr-4">
+        <i class="fas fa-bars text-xl"></i>
+      </button>
+      <h1 class="text-lg font-bold text-gray-800">FLUX.1 Generator</h1>
+    </div>
+    
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col fixed md:static inset-y-0 left-0 transform transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0 z-20">
+      <div class="p-4 border-b border-gray-200 hidden md:block">
+        <h1 class="text-xl font-bold text-gray-800">Chat Generator</h1>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto pt-16 md:pt-0">
+        <!-- Settings Section -->
+        <div class="p-4">
+          <h2 class="text-lg font-bold mb-3 text-gray-800">Pengaturan</h2>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Rasio Aspek</label>
+              <select id="aspectRatio" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="1:1">1:1 Persegi</option>
+                <option value="4:3">4:3 Standar</option>
+                <option value="3:2">3:2 Klasik</option>
+                <option value="16:9">16:9 Lebar</option>
+                <option value="2:3">2:3 Potret</option>
+                <option value="9:16">9:16 Vertikal</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Langkah (1-4)</label>
+              <input id="steps" type="number" min="1" max="4" value="3" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah (1-4)</label>
+              <input id="n" type="number" min="1" max="4" value="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium">Langkah (1-4)</label>
-          <input id="steps" type="number" min="1" max="4" value="3" class="mt-1 block w-full p-2 border rounded">
+        
+        <!-- Recent Chats -->
+        <div class="px-4 pt-4 border-t border-gray-200">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-lg font-bold text-gray-800">Recent Chats</h3>
+            <button class="text-blue-500 hover:text-blue-700">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          <div class="space-y-2">
+            <a href="#" class="block p-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
+              <i class="fas fa-comment mr-3 text-blue-500"></i>
+              <span class="truncate">Pantai Matahari Terbenam</span>
+            </a>
+            <a href="#" class="block p-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
+              <i class="fas fa-comment mr-3 text-blue-500"></i>
+              <span class="truncate">Kota Cyberpunk</span>
+            </a>
+            <a href="#" class="block p-3 text-gray-700 hover:bg-gray-100 rounded-lg flex items-center">
+              <i class="fas fa-comment mr-3 text-blue-500"></i>
+              <span class="truncate">Pemandangan Gunung</span>
+            </a>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium">Jumlah (1-4)</label>
-          <input id="n" type="number" min="1" max="4" value="1" class="mt-1 block w-full p-2 border rounded">
+      </div>
+      
+      <div class="p-4 border-t border-gray-200">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+            U
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-700">User</p>
+            <p class="text-xs text-gray-500">Free Plan</p>
+          </div>
         </div>
       </div>
     </div>
-
+    
+    <!-- Overlay for mobile -->
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"></div>
+    
     <!-- Main Content -->
-    <div class="text-center">
-      <h1 class="text-3xl font-bold mb-4">FLUX.1 Generator Gambar AI</h1>
-      <div class="mb-4">
-        <p>Selamat datang! Jelaskan gambar yang ingin dibuat, saya akan menghasilkannya untuk Anda.</p>
-        <div class="mt-2 flex justify-center space-x-2">
-          <button onclick="setPrompt('Pantai Matahari Terbenam')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Pantai Matahari Terbenam</button>
-          <button onclick="setPrompt('Kota Cyberpunk')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Kota Cyberpunk</button>
-          <button onclick="setPrompt('Pemandangan Gunung')" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Pemandangan Gunung</button>
+    <div class="flex-1 flex flex-col pt-16 md:pt-0">
+      <!-- Chat Area -->
+      <div id="chatContainer" class="flex-1 overflow-y-auto p-4 pb-24">
+        <div class="max-w-4xl mx-auto">
+          <!-- Welcome Message -->
+          <div class="bg-white rounded-lg shadow p-4 mb-4">
+            <div class="flex">
+              <div class="flex-shrink-0 mr-3">
+                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  AI
+                </div>
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-800">FLUX.1 Generator</h3>
+                <p class="text-gray-600 mt-1">Selamat datang! Jelaskan gambar yang ingin dibuat, saya akan menghasilkannya untuk Anda.</p>
+                
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button onclick="setPrompt('Pantai Matahari Terbenam')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition">
+                    Pantai Matahari Terbenam
+                  </button>
+                  <button onclick="setPrompt('Kota Cyberpunk')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition">
+                    Kota Cyberpunk
+                  </button>
+                  <button onclick="setPrompt('Pemandangan Gunung')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 transition">
+                    Pemandangan Gunung
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Chat Messages -->
+          <div id="chatMessages" class="space-y-4">
+            <!-- Messages will be added here dynamically -->
+          </div>
         </div>
       </div>
-      <div class="mb-4">
-        <textarea id="prompt" rows="4" class="w-full p-2 border rounded" placeholder="Masukkan deskripsi gambar..."></textarea>
-        <button onclick="generateImage()" class="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Generate</button>
+      
+      <!-- Input Area -->
+      <div class="bg-white border-t border-gray-200 p-4 fixed bottom-0 left-0 right-0 md:left-64">
+        <div class="max-w-4xl mx-auto">
+          <div class="flex">
+            <textarea 
+              id="prompt" 
+              rows="1" 
+              class="flex-1 border border-gray-300 rounded-l-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" 
+              placeholder="Masukkan deskripsi gambar..."
+            ></textarea>
+            <button 
+              onclick="sendMessage()" 
+              class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-r-lg font-medium transition flex items-center"
+            >
+              <i class="fas fa-paper-plane mr-2"></i>
+              <span class="hidden sm:inline">Generate</span>
+            </button>
+          </div>
+          <div class="mt-2 text-xs text-gray-500 text-center">
+            Tekan Enter untuk mengirim, Shift+Enter untuk baris baru
+          </div>
+        </div>
       </div>
-      <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </div>
+  </div>
 
-    <!-- Footer -->
-    <footer class="mt-8 text-center text-gray-600">
-      <p>Powered by FLUX.1 & TogetherAI</p>
-    </footer>
+  <!-- Image Modal -->
+  <div id="imageModal" class="fixed inset-0 bg-black bg-opacity-90 z-50 hidden items-center justify-center p-4">
+    <div class="relative max-w-6xl max-h-full">
+      <button id="closeModal" class="absolute top-4 right-4 text-white text-3xl z-10">
+        <i class="fas fa-times"></i>
+      </button>
+      <button id="prevImage" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-3xl z-10">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button id="nextImage" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-3xl z-10">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <img id="modalImage" class="max-w-full max-h-full object-contain" src="" alt="Zoomed Image">
+      <div id="imageCounter" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full">
+        1 / 1
+      </div>
+    </div>
   </div>
 
   <script>
+    const chatMessages = document.getElementById('chatMessages');
+    const chatContainer = document.getElementById('chatContainer');
+    const promptInput = document.getElementById('prompt');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    // Modal elements
+    const imageModal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const closeModal = document.getElementById('closeModal');
+    const prevImage = document.getElementById('prevImage');
+    const nextImage = document.getElementById('nextImage');
+    const imageCounter = document.getElementById('imageCounter');
+    
+    // Current image tracking
+    let currentImages = [];
+    let currentImageIndex = 0;
+    
     function setPrompt(text) {
-      document.getElementById('prompt').value = text;
+      promptInput.value = text;
+      promptInput.focus();
+      autoResizeTextarea();
+      
+      // Close sidebar on mobile after selecting prompt
+      if (window.innerWidth < 768) {
+        closeSidebar();
+      }
     }
-
-    async function generateImage() {
-      const prompt = document.getElementById('prompt').value;
+    
+    function sendMessage() {
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+      
+      // Add user message
+      addMessage(prompt, 'user');
+      
+      // Clear input
+      promptInput.value = '';
+      autoResizeTextarea();
+      
+      // Add AI thinking message with animation
+      const aiMessageId = addAIMessage(`
+        <div class="flex items-center">
+          <div class="animate-gradient w-8 h-8 rounded-full mr-3"></div>
+          <div>
+            <div class="h-4 bg-gray-200 rounded w-32 mb-2 animate-pulse-custom"></div>
+            <div class="h-3 bg-gray-200 rounded w-24 animate-pulse-custom"></div>
+          </div>
+        </div>
+      `);
+      
+      // Scroll to bottom
+      scrollToBottom();
+      
+      // Generate image after delay
+      setTimeout(() => {
+        generateImage(prompt, aiMessageId);
+      }, 1500);
+    }
+    
+    function addMessage(text, sender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+      
+      const messageContent = document.createElement('div');
+      messageContent.className = `max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+        sender === 'user' 
+          ? 'bg-blue-500 text-white' 
+          : 'bg-white text-gray-800 shadow'
+      }`;
+      messageContent.textContent = text;
+      
+      messageDiv.appendChild(messageContent);
+      chatMessages.appendChild(messageDiv);
+      
+      scrollToBottom();
+      return messageDiv;
+    }
+    
+    function addAIMessage(content) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'flex justify-start';
+      
+      const messageContent = document.createElement('div');
+      messageContent.className = 'bg-white text-gray-800 shadow rounded-lg w-full';
+      messageContent.id = 'ai-message-' + Date.now();
+      
+      const header = document.createElement('div');
+      header.className = 'flex items-center p-3 border-b border-gray-200';
+      header.innerHTML = `
+        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold mr-2">
+          AI
+        </div>
+        <div>
+          <h3 class="font-bold">FLUX.1 Generator</h3>
+        </div>
+      `;
+      
+      const body = document.createElement('div');
+      body.className = 'p-3';
+      body.innerHTML = content;
+      
+      messageContent.appendChild(header);
+      messageContent.appendChild(body);
+      messageDiv.appendChild(messageContent);
+      chatMessages.appendChild(messageDiv);
+      
+      scrollToBottom();
+      return messageContent;
+    }
+    
+    function updateAIMessage(messageElement, content) {
+      const body = messageElement.querySelector('div:nth-child(2)');
+      body.innerHTML = content;
+      scrollToBottom();
+    }
+    
+    async function generateImage(prompt, aiMessageElement) {
       const aspectRatio = document.getElementById('aspectRatio').value;
       const steps = document.getElementById('steps').value;
       const n = document.getElementById('n').value;
       const [width, height] = aspectRatio.split(':').map(Number);
       const ratio = width / height;
-
-      const results = document.getElementById('results');
-      results.innerHTML = '<p>Loading...</p>';
-
+      
       try {
+        // Calculate dimensions based on aspect ratio
+        const calculatedWidth = ratio >= 1 ? 1024 : Math.round(1024 * ratio);
+        const calculatedHeight = ratio <= 1 ? 1024 : Math.round(1024 / ratio);
+        
+        // Show progress animation
+        const progressHtml = `
+          <div class="text-center">
+            <div class="inline-block relative w-16 h-16 mb-4">
+              <div class="absolute inset-0 rounded-full border-4 border-blue-200"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-gray-600">Menghasilkan gambar...</p>
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div class="animate-gradient h-2 rounded-full w-3/4"></div>
+            </div>
+          </div>
+        `;
+        
+        updateAIMessage(aiMessageElement, progressHtml);
+        
+        // Call the actual API
         const response = await fetch('/api/generate-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
-            prompt,
-            width: ratio >= 1 ? 1024 : Math.round(1024 * ratio),
-            height: ratio <= 1 ? 1024 : Math.round(1024 / ratio),
-            steps,
-            n
+            prompt: prompt,
+            width: calculatedWidth,
+            height: calculatedHeight,
+            steps: parseInt(steps),
+            n: parseInt(n)
           })
         });
-
+        
         const data = await response.json();
-        if (data.error) {
-          results.innerHTML = `<p class="text-red-500">${data.error.message}</p>`;
-          return;
+        
+        if (!response.ok || data.error) {
+          throw new Error(data.error?.message || 'Failed to generate image');
         }
-
-        results.innerHTML = data.data.map(item => `
-          <div class="border rounded overflow-hidden">
-            <img src="${item.url}" alt="Generated Image" class="w-full h-auto">
+        
+        // Display generated images
+        const imagesHtml = `
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${data.data.map((item, index) => `
+              <div class="bg-white rounded-lg shadow overflow-hidden transform transition-transform hover:scale-105">
+                <img 
+                  src="${item.url}" 
+                  alt="Generated Image ${index + 1}" 
+                  class="w-full h-auto cursor-zoom-in hover:opacity-90 transition" 
+                  onclick="openImageModal([${data.data.map(d => `'${d.url}'`).join(',')}], ${index})"
+                >
+                <div class="p-3">
+                  <button 
+                    class="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center transition"
+                    onclick="downloadImage('${item.url}', 'generated-image-${index + 1}.png')"
+                  >
+                    <i class="fas fa-download mr-2"></i>
+                    Download
+                  </button>
+                </div>
+              </div>
+            `).join('')}
           </div>
-        `).join('');
+        `;
+        
+        updateAIMessage(aiMessageElement, imagesHtml);
       } catch (err) {
-        results.innerHTML = `<p class="text-red-500">Error: ${err.message}</p>`;
+        updateAIMessage(aiMessageElement, `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <i class="fas fa-exclamation-circle text-red-500 text-2xl mb-2"></i>
+            <p class="text-red-700">Error: ${err.message}</p>
+          </div>
+        `);
       }
     }
+    
+    function openImageModal(images, index) {
+      currentImages = images;
+      currentImageIndex = index;
+      modalImage.src = images[index];
+      updateImageCounter();
+      imageModal.classList.remove('hidden');
+      imageModal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+    }
+    
+    function closeImageModal() {
+      imageModal.classList.add('hidden');
+      imageModal.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+    }
+    
+    function showPrevImage() {
+      currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+      modalImage.src = currentImages[currentImageIndex];
+      updateImageCounter();
+    }
+    
+    function showNextImage() {
+      currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+      modalImage.src = currentImages[currentImageIndex];
+      updateImageCounter();
+    }
+    
+    function updateImageCounter() {
+      imageCounter.textContent = `${currentImageIndex + 1} / ${currentImages.length}`;
+    }
+    
+    function downloadImage(url, filename) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    function scrollToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    function autoResizeTextarea() {
+      promptInput.style.height = 'auto';
+      promptInput.style.height = (promptInput.scrollHeight) + 'px';
+    }
+    
+    // Sidebar functions
+    function toggleSidebar() {
+      if (sidebar.classList.contains('-translate-x-full')) {
+        openSidebar();
+      } else {
+        closeSidebar();
+      }
+    }
+    
+    function openSidebar() {
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+    }
+    
+    function closeSidebar() {
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+    }
+    
+    // Event listeners
+    promptInput.addEventListener('input', autoResizeTextarea);
+    
+    promptInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    
+    sidebarToggle.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', closeSidebar);
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+      if (window.innerWidth < 768 && 
+          !sidebar.contains(e.target) && 
+          e.target !== sidebarToggle && 
+          !sidebarToggle.contains(e.target)) {
+        closeSidebar();
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 768) {
+        closeSidebar();
+      }
+    });
+    
+    // Modal event listeners
+    closeModal.addEventListener('click', closeImageModal);
+    prevImage.addEventListener('click', showPrevImage);
+    nextImage.addEventListener('click', showNextImage);
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (imageModal.classList.contains('flex')) {
+        if (e.key === 'Escape') {
+          closeImageModal();
+        } else if (e.key === 'ArrowLeft') {
+          showPrevImage();
+        } else if (e.key === 'ArrowRight') {
+          showNextImage();
+        }
+      }
+    });
+    
+    // Close modal when clicking outside the image
+    imageModal.addEventListener('click', function(e) {
+      if (e.target === imageModal) {
+        closeImageModal();
+      }
+    });
+    
+    // Initial scroll to bottom
+    scrollToBottom();
   </script>
 </body>
 </html>
+
+
+    
+              <script>
+                              
+              </script>
+                        </body>
+                        </html>
+                    

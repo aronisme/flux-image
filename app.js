@@ -21,7 +21,8 @@ const API_KEYS = process.env.API_KEYS ? process.env.API_KEYS.split(",") : [
   "3f24e38734da5e1be049345f611dc956ce6351bcfda6b36210e342fa356ffbd0",
   "ccca937c293806f2d535b38b4d2a347cfac9ef5d7f8649695a95ff4c9d89f1df"
 ];
-const TIMEOUT = 50000;
+const TIMEOUT = 120000; // 120.000 ms = 2 menit
+
 let keyIndex = 0;
 
 // Helper functions
