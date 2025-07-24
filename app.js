@@ -129,7 +129,7 @@ app.get("*", (req, res) => {
 export const handler = serverless(app);
 
 // 🟢 JALANKAN LANGSUNG: Railway, lokal, dll
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
 });
